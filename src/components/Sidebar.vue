@@ -1,8 +1,10 @@
 <script setup>
 // 🔥 PERBAIKAN 1: onUnmounted ditambahkan ke dalam import!
+import { useCartStore } from "../stores/cart";
 import { ref, onMounted, onUnmounted } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
+const cartStore = useCartStore();
 const route = useRoute();
 const router = useRouter();
 const isMobileMenuOpen = ref(false);
@@ -72,9 +74,15 @@ const navigateToProfile = () => {
 };
 
 const handleLogout = () => {
+  const yakinKeluar = window.confirm("Apakah Anda yakin ingin keluar dari akun ini?");
+
+  if (!yakinKeluar) {
+    return; 
+  }
+  
   localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  alert("Anda berhasil logout!");
+  localStorage.removeItem("user"); 
+  cartStore.clearCart();
   router.push("/login");
 };
 </script>
