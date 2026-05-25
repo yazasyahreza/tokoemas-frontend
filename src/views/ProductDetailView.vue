@@ -15,9 +15,21 @@ const product = ref(null);
 const showToast = ref(false);
 const cartStore = useCartStore();
 const isLoading = ref(false);
+const showZoomModal = ref(false);
+const zoomedImageUrl = ref("");
 
 // 🔥 SUNTIKKAN STATE UNTUK MENAMPUNG SELURUH KOLEKSI PRODUK DATABASE
 const rawProductsList = ref([]);
+
+const openZoomModal = (imgName) => {
+  // Ganti url sesuai konstanta BACKEND_URL Bos
+  zoomedImageUrl.value = `${BACKEND_URL}/uploads/reviews/${imgName}`;
+  showZoomModal.value = true;
+};
+
+const closeZoomModal = () => {
+  showZoomModal.value = false;
+};
 
 // 🔥 AMANKAN VARIABEL ALIAS UNTUK KOLEKSI TERKAIT DI TEMPLATE BAWAHAN
 const allProducts = computed(() => rawProductsList.value);
@@ -105,7 +117,7 @@ const fetchProductDetail = async () => {
         // 🔥 LOGIKA KALKULATOR DISTRIBUSI BINTANG REVIEW DATABASE
         const productReviews = Array.isArray(d.reviews) ? d.reviews : [];
         const totalReviews = productReviews.length;
-        const avgRating = parseFloat(d.rating_avg) || 0.0;
+        const avgRating = parseFloat(d.average_rating) || 0.0;
 
         // Hitung persebaran bintang (5,4,3,2,1)
         const starDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -560,6 +572,18 @@ const copyLink = (productId) => {
                   <p class="text-slate-600 text-sm leading-relaxed">
                     {{ review.comment }}
                   </p>
+
+                  <div
+                    v-if="review.image"
+                    class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border border-slate-200 cursor-pointer hover:border-amber-400 hover:opacity-90 transition-all shadow-sm active:scale-95 mt-4"
+                    @click="openZoomModal(review.image)"
+                  >
+                    <img
+                      :src="`${BACKEND_URL}/uploads/reviews/${review.image}`"
+                      class="w-full h-full object-cover"
+                      alt="Foto Bukti Ulasan"
+                    />
+                  </div>
                 </div>
               </div>
             </template>
@@ -739,6 +763,54 @@ const copyLink = (productId) => {
         </div>
       </div>
     </transition>
+
+    <Teleport to="body">
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showZoomModal"
+          class="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md"
+          @click.self="closeZoomModal"
+        >
+          <button
+            @click="closeZoomModal"
+            class="absolute top-6 right-6 p-3 bg-slate-800/50 hover:bg-slate-700/70 text-white rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 z-10 active:scale-90"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          <div
+            class="relative max-w-7xl max-h-[90vh] bg-white rounded-3xl p-3 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300"
+            @click.stop
+          >
+            <img
+              :src="zoomedImageUrl"
+              class="w-full h-auto max-h-[85vh] object-contain rounded-2xl"
+              alt="Preview Gambar Ulasan Full Size"
+            />
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 

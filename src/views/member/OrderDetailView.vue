@@ -13,6 +13,77 @@ const order = ref(null);
 const BACKEND_URL = "http://localhost/toko-emas-main";
 const API_BASE_URL = `${BACKEND_URL}/index.php/api/v1`;
 
+// ==========================================
+// 🔥 STATE & FUNGSI UNTUK REVIEW / ULASAN
+// ==========================================
+const showReviewModal = ref(false);
+const selectedProductId = ref(null);
+const selectedProductName = ref("");
+const reviewRating = ref(5);
+const reviewComment = ref("");
+const reviewImageBlob = ref(null);
+const reviewImagePreview = ref(null);
+const isSubmittingReview = ref(false);
+
+const bukaModalUlasan = (productId, productName) => {
+  selectedProductId.value = productId;
+  selectedProductName.value = productName;
+  reviewRating.value = 5;
+  reviewComment.value = "";
+  reviewImageBlob.value = null;
+  if (reviewImagePreview.value) URL.revokeObjectURL(reviewImagePreview.value);
+  reviewImagePreview.value = null;
+
+  showReviewModal.value = true;
+};
+
+const handleReviewImageChange = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 3 * 1024 * 1024) {
+    alert("Ukuran gambar maksimal 3MB bos!");
+    return;
+  }
+
+  reviewImageBlob.value = file;
+  reviewImagePreview.value = URL.createObjectURL(file);
+};
+
+const kirimUlasanOtomatis = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return router.push("/login");
+
+  try {
+    isSubmittingReview.value = true;
+
+    // 🔥 Wajib pakai FormData agar bisa mengirim gambar
+    const formData = new FormData();
+    formData.append("product_id", selectedProductId.value);
+    formData.append("rating", reviewRating.value);
+    formData.append("comment", reviewComment.value);
+    if (reviewImageBlob.value) {
+      formData.append("image", reviewImageBlob.value);
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/reviews/add`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (response.data.status) {
+      alert("🎉 " + response.data.message);
+      showReviewModal.value = false;
+    }
+  } catch (error) {
+    alert("Gagal: " + (error.response?.data?.message || "Terjadi kesalahan."));
+  } finally {
+    isSubmittingReview.value = false;
+  }
+};
+
 // Helper Format Mata Uang Rupiah
 const formatRupiah = (number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -283,9 +354,22 @@ onMounted(() => {
                 </div>
 
                 <div class="text-right">
-                  <p class="font-black text-slate-800 text-sm md:text-base">
+                  <p
+                    class="font-black text-slate-800 mb-1 text-sm md:text-base"
+                  >
                     {{ formatRupiah(item.subtotal) }}
                   </p>
+
+                  <button
+                    v-if="
+                      order.order_status?.toLowerCase() === 'completed' ||
+                      order.order_status?.toLowerCase() === 'success'
+                    "
+                    @click="bukaModalUlasan(item.product_id, item.product_name)"
+                    class="px-4 py-1.5 bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white rounded-xl text-[10px] font-black border border-amber-200 hover:border-amber-500 transition-all active:scale-95 flex items-center gap-1 shadow-sm uppercase tracking-wider"
+                  >
+                    Beri Ulasan
+                  </button>
                 </div>
               </div>
             </div>
@@ -641,4 +725,164 @@ onMounted(() => {
       </div>
     </main>
   </div>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showReviewModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="showReviewModal = false"
+      >
+        <div
+          class="bg-white rounded-[2rem] w-full max-w-[400px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 p-8 space-y-6"
+        >
+          <div class="text-center">
+            <h3
+              class="text-lg font-black text-[#1a237e] uppercase tracking-tight"
+            >
+              Beri Ulasan Produk
+            </h3>
+            <p class="text-[11px] text-slate-500 mt-1.5 font-bold uppercase">
+              {{ selectedProductName }}
+            </p>
+          </div>
+
+          <div class="flex justify-center items-center gap-3 py-2">
+            <button
+              v-for="star in 5"
+              :key="star"
+              type="button"
+              @click="reviewRating = star"
+              class="text-4xl transition-transform duration-200 active:scale-125 focus:outline-none drop-shadow-sm"
+            >
+              <span
+                :class="
+                  star <= reviewRating ? 'text-amber-400' : 'text-slate-200'
+                "
+                >★</span
+              >
+            </button>
+          </div>
+
+          <div class="space-y-1.5">
+            <label
+              class="text-[10px] font-black text-slate-400 uppercase tracking-wider"
+              >Komentar / Pengalaman Anda</label
+            >
+            <textarea
+              v-model="reviewComment"
+              rows="4"
+              placeholder="Ceritakan kepuasan Anda tentang kualitas emas batangan atau pelayanan kami..."
+              class="w-full border border-slate-200 p-4 rounded-2xl focus:outline-none focus:border-[#00a279] text-xs bg-slate-50/50 resize-none font-medium transition-colors"
+            ></textarea>
+          </div>
+
+          <div class="space-y-1.5 mt-4">
+            <label
+              class="text-[10px] font-black text-slate-400 uppercase tracking-wider"
+              >Foto Produk (Opsional)</label
+            >
+            <div class="flex items-center gap-4">
+              <label
+                class="cursor-pointer border-2 border-dashed border-slate-200 hover:border-amber-400 bg-slate-50 px-4 py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <span class="text-xs font-bold text-slate-500"
+                  >Upload Foto</span
+                >
+                <input
+                  type="file"
+                  class="hidden"
+                  accept="image/jpeg, image/png, image/webp"
+                  @change="handleReviewImageChange"
+                />
+              </label>
+
+              <div
+                v-if="reviewImagePreview"
+                class="relative w-12 h-12 rounded-lg border overflow-hidden"
+              >
+                <img
+                  :src="reviewImagePreview"
+                  class="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  @click="
+                    reviewImagePreview = null;
+                    reviewImageBlob = null;
+                  "
+                  class="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button
+              type="button"
+              @click="showReviewModal = false"
+              class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-xl text-xs uppercase tracking-wider transition-all"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              @click="kirimUlasanOtomatis"
+              :disabled="isSubmittingReview"
+              class="flex-1 bg-[#00a279] hover:bg-[#008764] text-white font-black py-4 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex justify-center items-center gap-2"
+              :class="isSubmittingReview ? 'opacity-70 cursor-not-allowed' : ''"
+            >
+              <svg
+                v-if="isSubmittingReview"
+                class="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span>{{
+                isSubmittingReview ? "Mengirim..." : "Kirim Ulasan"
+              }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
