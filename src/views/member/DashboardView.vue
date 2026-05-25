@@ -382,9 +382,12 @@ onMounted(() => {
                   </td>
 
                   <td class="py-4 px-6 text-center">
-                    <span :class="getStatusClass(order.order_status)">{{
-                      order.order_status
-                    }}</span>
+                    <span
+                      class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                      :class="getStatusClass(order.order_status)"
+                    >
+                      {{ order.order_status }}
+                    </span>
                   </td>
 
                   <td class="py-4 px-6 text-slate-500 text-xs">

@@ -343,7 +343,6 @@ onMounted(() => {
                 </p>
                 <p class="text-xs font-black text-slate-700 uppercase mb-1">
                   {{ order.courier_name }}
-                  <span v-if="order.service"> ({{ order.service }})</span>
                 </p>
                 <p
                   class="text-sm font-black text-[#00a279] uppercase font-mono bg-emerald-50 inline-block px-2 py-0.5 rounded border border-emerald-100"

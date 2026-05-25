@@ -12,7 +12,7 @@ const transactions = ref([]);
 const selectedType = ref("Semua Jenis");
 
 // Opsi filter metode pembayaran
-const typeOptions = ["Semua Jenis", "Pembelian", "Refund"];
+const typeOptions = ["Semua Jenis", "Payment", "Refund"];
 
 const filteredTransactions = computed(() => {
   if (selectedType.value === "Semua Jenis") {
@@ -20,7 +20,7 @@ const filteredTransactions = computed(() => {
   }
 
   // Mapping dari teks UI (Indonesia) ke nilai Database (Inggris)
-  const targetType = selectedType.value === "Pembelian" ? "payment" : "refund";
+  const targetType = selectedType.value === "Payment" ? "payment" : "refund";
 
   return transactions.value.filter((tx) => tx.type === targetType);
 });

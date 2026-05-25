@@ -18,11 +18,9 @@ const API_BASE_URL = `${BACKEND_URL}/index.php/api/v1`;
 // Options untuk Dropdown Filter Status
 const statusOptions = [
   "Semua Status",
-  "Pending",
-  "Paid",
-  "Processed",
+  "Processing",
   "Shipped",
-  "Completed",
+  "Delivered",
   "Cancelled",
 ];
 
@@ -79,19 +77,14 @@ const formatDate = (dateString) => {
 // Pengondisian Warna Status Badge
 const getStatusClass = (status) => {
   switch (status?.toLowerCase()) {
-    case "completed":
-    case "success":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    case "paid":
-    case "processed":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "delivered":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200"; // Hijau kalau sampai
     case "shipped":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200";
-    case "pending":
-      return "bg-amber-50 text-amber-700 border-amber-200 animate-pulse";
+      return "bg-blue-50 text-blue-700 border-blue-200"; // Biru kalau dikirim
+    case "processing":
+      return "bg-amber-50 text-amber-700 border-amber-200 animate-pulse"; // Kuning & berdenyut kalau diproses
     case "cancelled":
-    case "failed":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 text-red-700 border-red-200"; // Merah kalau batal
     default:
       return "bg-slate-50 text-slate-600 border-slate-200";
   }
@@ -132,7 +125,8 @@ const filteredOrders = computed(() => {
   }
   return orders.value.filter(
     (order) =>
-      order.order_status?.toLowerCase() === selectedStatus.value.toLowerCase(),
+      order.shipping_status?.toLowerCase() ===
+      selectedStatus.value.toLowerCase(),
   );
 });
 
@@ -302,11 +296,11 @@ onMounted(() => {
                   <td class="px-6 py-5 text-center">
                     <span
                       :class="[
-                        getStatusClass(order.order_status),
+                        getStatusClass(order.shipping_status),
                         'px-3 py-1 text-[11px] font-bold rounded-full border inline-block min-w-[85px] text-center uppercase tracking-wide',
                       ]"
                     >
-                      {{ order.order_status }}
+                      {{ order.shipping_status || "PROCESSING" }}
                     </span>
                   </td>
 

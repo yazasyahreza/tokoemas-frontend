@@ -32,7 +32,7 @@ const fetchPaymentMethods = async () => {
     const token = localStorage.getItem("token");
 
     // Asumsi endpoint API menggunakan format CI3
-    const response = await axios.get(`${API_BASE_URL}/payments_method`, {
+    const response = await axios.get(`${API_BASE_URL}/shop-accounts`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
