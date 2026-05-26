@@ -247,6 +247,88 @@
       </main>
     </div>
   </div>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="closeModal"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
+            :class="
+              modalType === 'success'
+                ? 'bg-emerald-100 text-emerald-500'
+                : 'bg-rose-100 text-rose-500'
+            "
+          >
+            <svg
+              v-if="modalType === 'success'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <button
+            @click="closeModal"
+            class="w-full text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg"
+            :class="
+              modalType === 'success'
+                ? 'bg-[#00a279] hover:bg-[#008764] shadow-emerald-200'
+                : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
+            "
+          >
+            Mengerti
+          </button>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -268,6 +350,30 @@ const regForm = ref({
 
 const BACKEND_URL = "http://localhost/toko-emas-main";
 const API_BASE_URL = `${BACKEND_URL}/index.php/api/v1`;
+
+// ==========================================
+// 🔥 STATE & FUNGSI UNTUK MODAL NOTIFIKASI
+// ==========================================
+const showModal = ref(false);
+const modalType = ref("success"); // 'success' atau 'error'
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalAction = ref(null); // Menyimpan fungsi yang dieksekusi saat tombol OK diklik
+
+const openModal = (type, title, message, action = null) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalAction.value = action;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  if (modalAction.value) {
+    modalAction.value(); // Eksekusi fungsi lanjutan (misal pindah halaman)
+  }
+};
 
 // Cek validasi kecocokan sandi secara reaktif
 const passwordMismatch = computed(() => {
@@ -295,25 +401,36 @@ const handleRegister = async () => {
         response.status === 210 ||
         response.status === 201)
     ) {
-      alert(
-        "Pendaftaran Sukses! Akun Anda telah berhasil dibuat. Silakan klik OK untuk masuk ke halaman Login.",
+      // 🔥 GANTI ALERT SUKSES DENGAN MODAL
+      openModal(
+        "success",
+        "Pendaftaran Berhasil!",
+        "Akun Anda telah berhasil dibuat. Silakan masuk untuk mulai berinvestasi.",
+        () => router.push("/login"),
       );
-      router.push("/login");
     }
   } catch (error) {
     console.error("Eror registrasi:", error);
     if (error.response && error.response.data) {
       if (error.response.data.data && error.response.data.data.errors) {
         const errObj = error.response.data.data.errors;
-        alert(Object.values(errObj).join("\n"));
+        // 🔥 GANTI ALERT VALIDASI DENGAN MODAL
+        openModal("error", "Validasi Gagal", Object.values(errObj).join("\n"));
       } else {
-        alert(
-          error.response.data.message ||
-            "Registrasi gagal, periksa kembali data Anda!",
+        // 🔥 GANTI ALERT ERROR API DENGAN MODAL
+        openModal(
+          "error",
+          "Pendaftaran Gagal",
+          error.response.data.message || "Periksa kembali data Anda!",
         );
       }
     } else {
-      alert("Koneksi ke backend bermasalah!");
+      // 🔥 GANTI ALERT KONEKSI DENGAN MODAL
+      openModal(
+        "error",
+        "Koneksi Bermasalah",
+        "Gagal terhubung ke server backend.",
+      );
     }
   } finally {
     isLoading.value = false;

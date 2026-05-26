@@ -9,6 +9,40 @@ const route = useRoute();
 const router = useRouter();
 const isMobileMenuOpen = ref(false);
 
+const showModal = ref(false);
+const modalType = ref("warning");
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalConfirmAction = ref(null);
+const modalConfirmText = ref("Ya, Keluar");
+
+const openModal = (
+  type,
+  title,
+  message,
+  confirmAction = null,
+  confirmText = "Oke",
+) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalConfirmAction.value = confirmAction;
+  modalConfirmText.value = confirmText;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  modalConfirmAction.value = null;
+};
+
+const executeAction = () => {
+  if (modalConfirmAction.value) {
+    modalConfirmAction.value();
+  }
+  closeModal();
+};
+
 // State untuk menampung sesi data user secara reaktif
 const user = ref({});
 
@@ -74,16 +108,19 @@ const navigateToProfile = () => {
 };
 
 const handleLogout = () => {
-  const yakinKeluar = window.confirm("Apakah Anda yakin ingin keluar dari akun ini?");
-
-  if (!yakinKeluar) {
-    return; 
-  }
-  
-  localStorage.removeItem("token");
-  localStorage.removeItem("user"); 
-  cartStore.clearCart();
-  router.push("/login");
+  openModal(
+    "warning",
+    "Keluar dari Akun?",
+    "Apakah Anda yakin ingin keluar? Anda harus login kembali untuk mengakses Dashboard dan Pesanan Anda.",
+    () => {
+      // Eksekusi asli setelah klik "Ya, Keluar"
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      cartStore.clearCart();
+      router.push("/login");
+    },
+    "Ya, Keluar",
+  );
 };
 </script>
 
@@ -395,4 +432,68 @@ const handleLogout = () => {
     @click="isMobileMenuOpen = false"
     class="md:hidden fixed inset-0 bg-slate-900/30 z-30 transition-opacity backdrop-blur-xs"
   ></div>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="closeModal"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center animate-in fade-in zoom-in-95 duration-300"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-amber-100 text-amber-500"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <div class="flex gap-3">
+            <button
+              @click="closeModal"
+              class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all"
+            >
+              Batal
+            </button>
+            <button
+              @click="executeAction"
+              class="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+            >
+              {{ modalConfirmText }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>

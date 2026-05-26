@@ -1651,6 +1651,104 @@
       </div>
     </transition>
   </Teleport>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="executeCancel"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center animate-in fade-in zoom-in-95 duration-300"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
+            :class="
+              modalType === 'warning'
+                ? 'bg-amber-100 text-amber-500'
+                : 'bg-rose-100 text-rose-500'
+            "
+          >
+            <svg
+              v-if="modalType === 'warning'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <div v-if="modalType === 'warning'" class="flex gap-3">
+            <button
+              @click="executeCancel"
+              class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all"
+            >
+              Batal
+            </button>
+            <button
+              @click="executeAction"
+              class="flex-1 text-white shadow-lg font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+              :class="
+                modalConfirmText === 'Ya, Kirim'
+                  ? 'bg-[#00a279] hover:bg-[#008764] shadow-emerald-200'
+                  : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
+              "
+            >
+              {{ modalConfirmText }}
+            </button>
+          </div>
+
+          <button
+            v-else
+            @click="executeAction"
+            class="w-full bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+          >
+            Mengerti
+          </button>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -1685,6 +1783,51 @@ const isSubmitting = ref(false);
 const router = useRouter();
 const successData = ref(null);
 const showTrackingModal = ref(false);
+
+const showModal = ref(false);
+const modalType = ref("error"); // 'error', 'warning', 'success'
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalConfirmAction = ref(null);
+const modalCancelAction = ref(null);
+const modalConfirmText = ref("Oke");
+
+const openModal = (
+  type,
+  title,
+  message,
+  confirmAction = null,
+  confirmText = "Oke",
+  cancelAction = null,
+) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalConfirmAction.value = confirmAction;
+  modalConfirmText.value = confirmText;
+  modalCancelAction.value = cancelAction;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  modalConfirmAction.value = null;
+};
+
+const executeCancel = () => {
+  if (modalCancelAction.value) {
+    modalCancelAction.value(); // Lapor ke Vue Router untuk membatalkan
+  }
+  closeModal();
+};
+
+const executeAction = () => {
+  if (modalConfirmAction.value) {
+    modalConfirmAction.value();
+  } else {
+    closeModal();
+  }
+};
 
 const formatTimeIndo = () => {
   const d = new Date();
@@ -1908,7 +2051,11 @@ const nextStep = () => {
 
 const handleNextToPayment = () => {
   if (!selectedCourier.value) {
-    alert("Silakan pilih metode pengiriman (kurir) terlebih dahulu ya!");
+    openModal(
+      "error",
+      "Kurir Belum Dipilih",
+      "Silakan pilih metode pengiriman (kurir) terlebih dahulu ya!",
+    );
     return;
   }
   currentStep.value = 3;
@@ -1917,7 +2064,11 @@ const handleNextToPayment = () => {
 
 const handleFinishOrder = () => {
   if (!selectedBank.value) {
-    alert("Silakan pilih metode pembayaran bank terlebih dahulu ya!");
+    openModal(
+      "error",
+      "Bank Belum Dipilih",
+      "Silakan pilih metode pembayaran bank terlebih dahulu ya!",
+    );
     return;
   }
   currentStep.value = 4;
@@ -1936,15 +2087,19 @@ const validateImageUpload = (event, maxMb = 2) => {
   if (!file) return null;
   const allowedExtensions = ["image/jpeg", "image/png", "image/webp"];
   if (!allowedExtensions.includes(file.type)) {
-    alert(
-      "Format file tidak didukung! Mohon unggah gambar berformat JPG, PNG, atau WebP.",
+    openModal(
+      "error",
+      "Format Tidak Didukung",
+      "Mohon unggah gambar berformat JPG, PNG, atau WebP.",
     );
     event.target.value = "";
     return null;
   }
   if (file.size > maxMb * 1024 * 1024) {
-    alert(
-      `Ukuran file terlalu besar! Maksimal ukuran gambar untuk form ini adalah ${maxMb}MB.`,
+    openModal(
+      "error",
+      "Ukuran Terlalu Besar",
+      `Maksimal ukuran gambar untuk form ini adalah ${maxMb}MB.`,
     );
     event.target.value = "";
     return null;
@@ -1993,30 +2148,56 @@ const clearBuktiPreview = (event) => {
 // ==========================================
 // 7. FINAL SUBMISSION HANDLER (ENTERPRISE LEVEL)
 // ==========================================
-const handleConfirmPayment = async (event) => {
+const handleConfirmPayment = (event) => {
   const formElement = event?.target?.closest("form");
   if (formElement && !formElement.checkValidity()) {
     formElement.reportValidity();
     return;
   }
 
-  // 1. Validasi Token & File Wajib
+  // Cek apakah gambar bukti sudah dimasukkan
+  if (!form.value.buktiBlobFile) {
+    openModal(
+      "error",
+      "Bukti Wajib Diunggah",
+      "Tunggu! Gambar bukti pembayaran wajib diunggah Bos.",
+    );
+    return;
+  }
+
+  // MUNCULKAN POP-UP KONFIRMASI PEMBAYARAN MINIMALIS
+  openModal(
+    "warning",
+    "Konfirmasi Pembayaran?",
+    "Pastikan nominal transfer dan data yang Anda masukkan sudah sesuai. Kirim bukti transaksi Anda sekarang, Bos?",
+    () => {
+      executeFinalCheckout(); // Jika klik 'Ya, Kirim', jalankan fungsi di bawah
+    },
+    "Ya, Kirim", // Teks tombol kanan kustom
+  );
+};
+
+// 🔥 LANGKAH 2: Eksekutor Asli Kirim Data ke API (Dijalankan dari dalam Modal)
+const executeFinalCheckout = async () => {
   const token = localStorage.getItem("token");
   if (!token) {
-    alert("Sesi Anda telah habis. Silakan login kembali!");
+    openModal(
+      "error",
+      "Sesi Habis",
+      "Sesi Anda telah habis. Silakan login kembali!",
+      () => {
+        closeModal();
+        router.push("/login");
+      },
+    );
     return;
   }
 
-  if (!form.value.buktiBlobFile) {
-    alert("Tunggu! Gambar bukti pembayaran wajib diunggah.");
-    return;
-  }
-
-  // 2. Nyalakan Animasi Loading
+  // Tutup modal konfirmasi dulu, lalu nyalakan loading full screen/tombol
+  closeModal();
   isSubmitting.value = true;
 
   try {
-    // 3. Merakit Payload FormData (Satu-satunya cara mengirim file via Axios)
     const formData = new FormData();
 
     // Data Pembeli & Alamat
@@ -2035,12 +2216,12 @@ const handleConfirmPayment = async (event) => {
     // Data Transaksi
     formData.append("invoiceNumber", form.value.invoiceNumber);
     formData.append("paymentDate", form.value.paymentDate);
-    formData.append("targetBank", form.value.targetBank); // shop_account_id
+    formData.append("targetBank", form.value.targetBank);
     formData.append("accountNumber", form.value.accountNumber);
     formData.append("accountName", form.value.accountName);
     formData.append("note", form.value.note);
-    formData.append("selectedCourier", selectedCourier.value); // shipping_method_id
-    formData.append("selectedBank", selectedBank.value); // payment_method_id
+    formData.append("selectedCourier", selectedCourier.value);
+    formData.append("selectedBank", selectedBank.value);
 
     // Lampiran File Gambar
     formData.append("buktiBlobFile", form.value.buktiBlobFile);
@@ -2048,7 +2229,7 @@ const handleConfirmPayment = async (event) => {
       formData.append("ktpBlobFile", form.value.ktpBlobFile);
     }
 
-    // 4. Tembak ke Backend CI3 (Mode Multipart)
+    // Tembak API Backend
     const response = await axios.post(
       `${API_BASE_URL}/orders/checkout`,
       formData,
@@ -2060,7 +2241,6 @@ const handleConfirmPayment = async (event) => {
       },
     );
 
-    // 5. Eksekusi Jika Backend Sukses Memproses 5 Tabel
     if (response.data.status) {
       const activeCourierData = couriers.value.find(
         (c) => c.id === selectedCourier.value,
@@ -2084,7 +2264,7 @@ const handleConfirmPayment = async (event) => {
         timeFormatted: formatTimeIndo(),
       };
 
-      // CLEANUP MASSAL
+      // CLEANUP KERANJANG & FORM STATE
       cartStore.clearCart();
       if (ktpPreviewUrl.value) URL.revokeObjectURL(ktpPreviewUrl.value);
       if (buktiPreviewUrl.value) URL.revokeObjectURL(buktiPreviewUrl.value);
@@ -2121,7 +2301,7 @@ const handleConfirmPayment = async (event) => {
       const fileInputs = document.querySelectorAll('input[type="file"]');
       fileInputs.forEach((input) => (input.value = ""));
 
-      // Kembalikan ke step 1
+      // Pindah ke Step 5 (Card Bukti Bayar & Resi)
       generateInvoiceNumber();
       currentStep.value = 5;
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2131,9 +2311,8 @@ const handleConfirmPayment = async (event) => {
     const errorMsg =
       error.response?.data?.message ||
       "Terjadi kesalahan fatal pada server saat memproses pesanan.";
-    alert("Waduh, Gagal: " + errorMsg);
+    openModal("error", "Proses Gagal", errorMsg);
   } finally {
-    // 6. Matikan Animasi Loading apapun hasil akhirnya
     isSubmitting.value = false;
   }
 };
@@ -2152,19 +2331,33 @@ onMounted(() => {
 });
 
 onBeforeRouteLeave((to, from, next) => {
-  if (currentStep.value === 1 && !form.value.email) {
+  // Jika form masih kosong atau pesanan sudah sukses (step 5), izinkan pindah langsung
+  if (
+    (currentStep.value === 1 && !form.value.email) ||
+    currentStep.value === 5
+  ) {
     next();
     return;
   }
-  const yakinKeluar = confirm(
+
+  // Panggil Modal Penahan Route
+  openModal(
+    "warning",
+    "Batalkan Checkout?",
     "Apakah Anda yakin ingin keluar dari halaman checkout? Semua data informasi yang Anda isi akan tereset!",
+    () => {
+      // 🔥 JIKA KLIK "YA, KELUAR"
+      if (ktpPreviewUrl.value) URL.revokeObjectURL(ktpPreviewUrl.value);
+      if (buktiPreviewUrl.value) URL.revokeObjectURL(buktiPreviewUrl.value);
+      closeModal();
+      next(); // Izinkan Vue Router berpindah halaman
+    },
+    "Ya, Keluar",
+    () => {
+      // 🔥 JIKA KLIK "BATAL"
+      next(false); // Beri tahu Vue Router untuk membatalkan niat pindah halaman
+    },
   );
-  if (yakinKeluar) {
-    if (ktpPreviewUrl.value) URL.revokeObjectURL(ktpPreviewUrl.value);
-    if (buktiPreviewUrl.value) URL.revokeObjectURL(buktiPreviewUrl.value);
-    next();
-  } else {
-    next(false);
-  }
 });
+
 </script>

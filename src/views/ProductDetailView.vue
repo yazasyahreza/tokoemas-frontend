@@ -168,15 +168,7 @@ const fetchProductDetail = async () => {
 const addToCart = async () => {
   if (!product.value) return;
 
-  const yakin = confirm(
-    `Apakah Anda yakin ingin menambah ${qty.value} ${product.value.name} ke keranjang?`,
-  );
-  if (!yakin) return;
-
-  // 🔥 Looping DIHAPUS. Cukup panggil 1 kali dan kirimkan qty.value-nya!
   await cartStore.addToCart(product.value, qty.value);
-
-  alert("Berhasil ditambahkan ke keranjang!");
 };
 
 const buyNow = async () => {

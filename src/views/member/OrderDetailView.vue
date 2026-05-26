@@ -42,7 +42,11 @@ const handleReviewImageChange = (event) => {
   if (!file) return;
 
   if (file.size > 3 * 1024 * 1024) {
-    alert("Ukuran gambar maksimal 3MB bos!");
+    openModal(
+      "error",
+      "Ukuran Terlalu Besar",
+      "Ukuran gambar ulasan maksimal 3MB!",
+    );
     return;
   }
 
@@ -56,8 +60,6 @@ const kirimUlasanOtomatis = async () => {
 
   try {
     isSubmittingReview.value = true;
-
-    // 🔥 Wajib pakai FormData agar bisa mengirim gambar
     const formData = new FormData();
     formData.append("product_id", selectedProductId.value);
     formData.append("rating", reviewRating.value);
@@ -74,14 +76,57 @@ const kirimUlasanOtomatis = async () => {
     });
 
     if (response.data.status) {
-      alert("🎉 " + response.data.message);
       showReviewModal.value = false;
+      openModal(
+        "success",
+        "Ulasan Terkirim",
+        response.data.message,
+        null,
+        "Lanjutkan",
+      );
     }
   } catch (error) {
-    alert("Gagal: " + (error.response?.data?.message || "Terjadi kesalahan."));
+    openModal(
+      "error",
+      "Gagal Mengirim Ulasan",
+      error.response?.data?.message || "Terjadi kesalahan pada server.",
+    );
   } finally {
     isSubmittingReview.value = false;
   }
+};
+
+const showSystemModal = ref(false);
+const modalType = ref("error"); // 'success' atau 'error'
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalConfirmAction = ref(null);
+const modalConfirmText = ref("Mengerti");
+
+const openModal = (
+  type,
+  title,
+  message,
+  action = null,
+  btnText = "Mengerti",
+) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalConfirmAction.value = action;
+  modalConfirmText.value = btnText;
+  showSystemModal.value = true;
+};
+
+const closeSystemModal = () => {
+  showSystemModal.value = false;
+};
+
+const executeModalAction = () => {
+  if (modalConfirmAction.value) {
+    modalConfirmAction.value();
+  }
+  closeSystemModal();
 };
 
 // Helper Format Mata Uang Rupiah
@@ -100,8 +145,7 @@ const fetchOrderDetail = async () => {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
 
-    const orderId = route.params.id; // Ambil ID dari URL (misal: /member/orders/1)
-
+    const orderId = route.params.id;
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const response = await axios.get(
       `${API_BASE_URL}/orders/detail/${orderId}`,
@@ -113,8 +157,16 @@ const fetchOrderDetail = async () => {
     }
   } catch (error) {
     console.error("Gagal mengambil detail order:", error);
-    alert("Data pesanan tidak ditemukan.");
-    router.push("/member/orders");
+    // 🔥 Ganti alert dan masukkan router.push ke dalam fungsi klik tombol
+    openModal(
+      "error",
+      "Pesanan Tidak Ditemukan",
+      "Data pesanan tidak ditemukan di dalam sistem.",
+      () => {
+        router.push("/member/orders");
+      },
+      "Kembali",
+    );
   } finally {
     isLoading.value = false;
   }
@@ -133,30 +185,25 @@ const getImageUrl = (imagePath, folder = "products") => {
 
 const contactWhatsApp = () => {
   if (!order.value || !order.value.shop_whatsapp) {
-    alert("Nomor WhatsApp admin belum diatur di sistem backend.");
+    // 🔥 Ganti alert
+    openModal(
+      "error",
+      "Nomor Tidak Tersedia",
+      "Nomor WhatsApp admin belum diatur di sistem backend.",
+    );
     return;
   }
 
-  // 🔥 Mengambil nomor whatsapp dinamis hasil tarikan dari database settings
   let phone = order.value.shop_whatsapp.trim();
-
-  // Logika Auto-Format agar kebal dari kesalahan penulisan di database
   if (phone.startsWith("0")) {
     phone = "62" + phone.slice(1);
   } else if (phone.startsWith("+62")) {
     phone = phone.replace("+62", "62");
   }
-
-  // Menghilangkan spasi, strip, atau karakter non-angka jika admin salah ketik
   phone = phone.replace(/\D/g, "");
 
-  // Pesan dinamis mengambil invoice_no dari database
   const message = `Halo Admin, saya ingin bertanya tentang pesanan: ${order.value.invoice_no}`;
-
-  // Encode URI agar spasi dan karakter khusus aman di URL
   const encodedMessage = encodeURIComponent(message);
-
-  // Buka tab baru menuju WhatsApp dengan nomor dinamis
   const waUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
   window.open(waUrl, "_blank");
 };
@@ -881,6 +928,88 @@ onMounted(() => {
               }}</span>
             </button>
           </div>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showSystemModal"
+        class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="closeSystemModal"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center animate-in fade-in zoom-in-95 duration-300"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
+            :class="
+              modalType === 'success'
+                ? 'bg-emerald-100 text-emerald-500'
+                : 'bg-rose-100 text-rose-500'
+            "
+          >
+            <svg
+              v-if="modalType === 'success'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <button
+            @click="executeModalAction"
+            class="w-full text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg"
+            :class="
+              modalType === 'success'
+                ? 'bg-[#00a279] hover:bg-[#008764] shadow-emerald-200'
+                : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
+            "
+          >
+            {{ modalConfirmText }}
+          </button>
         </div>
       </div>
     </transition>

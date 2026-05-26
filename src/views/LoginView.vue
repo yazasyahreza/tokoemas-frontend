@@ -178,6 +178,88 @@
       </main>
     </div>
   </div>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="closeModal"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center animate-in fade-in zoom-in-95 duration-300"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
+            :class="
+              modalType === 'success'
+                ? 'bg-emerald-100 text-emerald-500'
+                : 'bg-rose-100 text-rose-500'
+            "
+          >
+            <svg
+              v-if="modalType === 'success'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <button
+            @click="closeModal"
+            class="w-full text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg"
+            :class="
+              modalType === 'success'
+                ? 'bg-[#3B82F6] hover:bg-[#2563EB] shadow-blue-200'
+                : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
+            "
+          >
+            {{ modalType === "success" ? "Lanjutkan" : "Mengerti" }}
+          </button>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -196,6 +278,30 @@ const loginForm = ref({ email: "", password: "" });
 const BACKEND_URL = "http://localhost/toko-emas-main";
 const API_BASE_URL = `${BACKEND_URL}/index.php/api/v1`;
 
+// ==========================================
+// 🔥 STATE & FUNGSI UNTUK MODAL NOTIFIKASI
+// ==========================================
+const showModal = ref(false);
+const modalType = ref("success"); // 'success' atau 'error'
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalAction = ref(null);
+
+const openModal = (type, title, message, action = null) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalAction.value = action;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  if (modalAction.value) {
+    modalAction.value(); // Eksekusi fungsi lanjutan (misal pindah halaman)
+  }
+};
+
 const handleLogin = async () => {
   try {
     isLoading.value = true;
@@ -205,7 +311,6 @@ const handleLogin = async () => {
       password: loginForm.value.password,
     });
 
-    // 🔥 PERBAIKAN: Sesuaikan dengan format respons json_response murni backend
     if (
       response.data &&
       (response.data.status === true || response.data.success === true)
@@ -220,28 +325,48 @@ const handleLogin = async () => {
         console.warn("Sinkronisasi keranjang tertunda:", syncError);
       }
 
-      alert("Selamat datang kembali! Login Berhasil.");
-      
       const redirectPath = localStorage.getItem("redirectAfterLogin");
 
       if (redirectPath) {
+        // 🔥 JALUR 1: LOGIN DARI CHECKOUT
         localStorage.removeItem("redirectAfterLogin");
-        router.push(redirectPath);
+        openModal(
+          "success",
+          "Login Berhasil!",
+          "Selamat datang kembali! Anda akan diarahkan kembali ke halaman Checkout untuk melanjutkan pesanan emas Anda.",
+          () => router.push(redirectPath),
+        );
       } else {
-        router.push("/member/dashboard");
+        // 🔥 JALUR 2: LOGIN NORMAL KE DASHBOARD
+        openModal(
+          "success",
+          "Login Berhasil!",
+          "Selamat datang kembali! Mari pantau portofolio investasi Logam Mulia Anda hari ini.",
+          () => router.push("/member/dashboard"),
+        );
       }
     } else {
-      alert(response.data.message || "Login gagal, periksa kembali akun Anda!");
+      openModal(
+        "error",
+        "Login Gagal",
+        response.data.message || "Periksa kembali akun Anda!",
+      );
     }
   } catch (error) {
     console.error("Eror login:", error);
     if (error.response && error.response.data) {
-      alert(
+      openModal(
+        "error",
+        "Akses Ditolak",
         error.response.data.message ||
           "Email atau Password yang Anda masukkan salah!",
       );
     } else {
-      alert("Koneksi ke server backend terputus!");
+      openModal(
+        "error",
+        "Koneksi Terputus",
+        "Koneksi ke server backend terputus! Pastikan server menyala.",
+      );
     }
   } finally {
     isLoading.value = false;

@@ -169,10 +169,104 @@
       </div>
     </div>
   </main>
+
+  <Teleport to="body">
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showModal"
+        class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        @click.self="closeModal"
+      >
+        <div
+          class="bg-white rounded-3xl w-full max-w-[360px] shadow-2xl overflow-hidden p-8 text-center animate-in fade-in zoom-in-95 duration-300"
+        >
+          <div
+            class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
+            :class="
+              modalType === 'warning'
+                ? 'bg-amber-100 text-amber-500'
+                : 'bg-rose-100 text-rose-500'
+            "
+          >
+            <svg
+              v-if="modalType === 'warning'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <svg
+              v-else
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2">
+            {{ modalTitle }}
+          </h3>
+          <p
+            class="text-xs text-slate-500 font-medium leading-relaxed whitespace-pre-line mb-8"
+          >
+            {{ modalMessage }}
+          </p>
+
+          <div v-if="modalType === 'warning'" class="flex gap-3">
+            <button
+              @click="closeModal"
+              class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all"
+            >
+              Batal
+            </button>
+            <button
+              @click="executeAction"
+              class="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+            >
+              Hapus
+            </button>
+          </div>
+
+          <button
+            v-else
+            @click="closeModal"
+            class="w-full bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+          >
+            Mengerti
+          </button>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+// 🔥 PERBAIKAN: Pastikan ref ikut di-import
+import { ref, onMounted } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { useCartStore } from "../stores/cart";
 
@@ -182,19 +276,48 @@ const cartStore = useCartStore();
 // 🔥 ALAMAT BACKEND
 const BACKEND_URL = "http://localhost/toko-emas-main";
 
-// 🔥 HELPER 1: Mengakali perbedaan nama "qty" lokal vs "quantity" database
+// ==========================================
+// 🔥 STATE & FUNGSI UNTUK MODAL NOTIFIKASI
+// ==========================================
+const showModal = ref(false);
+const modalType = ref("warning"); // 'error' atau 'warning'
+const modalTitle = ref("");
+const modalMessage = ref("");
+const modalConfirmAction = ref(null);
+
+const openModal = (type, title, message, confirmAction = null) => {
+  modalType.value = type;
+  modalTitle.value = title;
+  modalMessage.value = message;
+  modalConfirmAction.value = confirmAction;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  modalConfirmAction.value = null; // reset aksi
+};
+
+const executeAction = () => {
+  if (modalConfirmAction.value) {
+    modalConfirmAction.value(); // Jalankan perintah hapus
+  }
+  closeModal();
+};
+
+// ==========================================
+// HELPER FUNCTIONS (Tetap sama)
+// ==========================================
 const getQty = (item) => {
   return parseInt(item.qty) || parseInt(item.quantity) || 1;
 };
 
-// 🔥 HELPER 2: Merakit URL gambar dari database
 const getImageUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
   return `${BACKEND_URL}/uploads/products/${img}`;
 };
 
-// 🔥 HELPER 3: Menghitung subtotal dengan aman (Anti Rp NAN)
 const getSubtotal = (item) => {
   const price = parsePrice(item.price);
   const qty = getQty(item);
@@ -210,18 +333,32 @@ const formatPrice = (val) => {
   return new Intl.NumberFormat("id-ID").format(val);
 };
 
+// ==========================================
+// 🔥 PERBAIKAN: Fungsi Tombol Keranjang (Tanpa Alert Bawaan)
+// ==========================================
 const handleClearCart = () => {
-  if (confirm("Hapus semua isi keranjang belanja Anda?")) {
-    cartStore.clearCart();
-  }
+  // Panggil modal konfirmasi dengan 2 tombol
+  openModal(
+    "warning",
+    "Kosongkan Keranjang?",
+    "Apakah Anda yakin ingin menghapus semua isi keranjang belanja Anda?",
+    () => {
+      cartStore.clearCart();
+    },
+  );
 };
 
 const handleCheckout = () => {
   if (!cartStore.items || cartStore.items.length === 0) {
-    alert("Keranjang belanja masih kosong! Silakan pilih produk dulu.");
+    // Panggil modal peringatan dengan 1 tombol
+    openModal(
+      "error",
+      "Keranjang Kosong",
+      "Keranjang belanja masih kosong! Silakan pilih produk emas terlebih dahulu.",
+    );
     return;
   }
-  // Jika aman, arahkan ke checkout (satpam Router akan otomatis mencegat jika belum login)
+  // Jika aman, arahkan ke checkout
   router.push("/checkout");
 };
 
