@@ -326,11 +326,19 @@ const getSubtotal = (item) => {
 
 const parsePrice = (priceStr) => {
   if (!priceStr) return 0;
-  return parseInt(String(priceStr).replace(/[^0-9]/g, "")) || 0;
+  if (typeof priceStr === "number") return Math.floor(priceStr);
+  if (String(priceStr).toLowerCase() === "gratis") return 0;
+
+  const withoutDecimal = String(priceStr).split(".")[0];
+  return parseInt(withoutDecimal.replace(/[^0-9]/g, "")) || 0;
 };
 
 const formatPrice = (val) => {
-  return new Intl.NumberFormat("id-ID").format(val);
+  if (!val) return "0";
+  const cleanVal = String(val).split(".")[0];
+  const finalNumber = parseInt(cleanVal.replace(/[^0-9]/g, "")) || 0;
+
+  return new Intl.NumberFormat("id-ID").format(finalNumber);
 };
 
 // ==========================================

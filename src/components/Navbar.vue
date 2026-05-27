@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+// 🔥 PERBAIKAN 1: Tambahkan onUnmounted di import
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useCartStore } from "../stores/cart";
-import axios from "axios"; // 🔥 Tambahkan import axios
+import axios from "axios";
 
 const BACKEND_URL = "http://localhost/toko-emas-main";
 const API_BASE_URL = `${BACKEND_URL}/index.php/api/v1`;
@@ -13,29 +14,21 @@ const route = useRoute();
 
 // State reaktif untuk status login & logo
 const isAuthenticated = ref(false);
-const shopLogo = ref(""); // 🔥 Siapkan variabel untuk logo dinamis
+const shopLogo = ref("");
 
 const checkLoginStatus = () => {
   const token = localStorage.getItem("token");
   isAuthenticated.value = !!token;
 };
 
-onMounted(async () => {
-  await cartStore.fetchCart();
-});
-
-// 🔥 Fungsi untuk mengambil logo dari API Settings
 const fetchSettings = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/settings`);
     if (response.data && response.data.data) {
       const settingsData = response.data.data;
-
-      // Cari baris yang key-nya 'shop_logo' (atau sesuaikan dengan key di db)
       const logoItem = settingsData.find((item) => item.key === "logo");
 
       if (logoItem && logoItem.value) {
-        // Rakit URL ke folder uploads/settings
         shopLogo.value = `${BACKEND_URL}/uploads/settings/${logoItem.value}`;
       }
     }
@@ -44,15 +37,40 @@ const fetchSettings = async () => {
   }
 };
 
-onMounted(() => {
+// 🔥 PERBAIKAN 2: Gabungkan semua onMounted agar lebih bersih dan pasang Event Listener
+onMounted(async () => {
   checkLoginStatus();
-  fetchSettings(); // 🔥 Panggil fungsi saat navbar muncul
+  fetchSettings();
+  await cartStore.fetchCart();
+
+  // 👉 Pasang "Telinga" untuk mendengarkan sinyal token expired dari main.js
+  window.addEventListener("auth-changed", checkLoginStatus);
+  window.addEventListener("profile-updated", checkLoginStatus);
+});
+
+// 🔥 PERBAIKAN 3: Cabut Event Listener saat komponen hancur agar tidak membebani memori browser
+onUnmounted(() => {
+  window.removeEventListener("auth-changed", checkLoginStatus);
+  window.removeEventListener("profile-updated", checkLoginStatus);
 });
 
 watch(
   () => route.path,
-  () => {
+  async () => {
+    // 1. Cek wujud fisik token di localStorage
     checkLoginStatus();
+
+    // 2. Jika secara fisik tokennya ada, mari kita tes "keasliannya" ke Backend!
+    if (isAuthenticated.value) {
+      try {
+        // Memanggil fetchCart diam-diam.
+        // Jika token asli, angka badge keranjang akan update.
+        // Jika token RUSAK/EXPIRED, backend membalas 401 dan Interceptor langsung bekerja!
+        await cartStore.fetchCart();
+      } catch (error) {
+        console.warn("Sesi tidak valid, memicu mode Guest secara otomatis.");
+      }
+    }
   },
 );
 </script>
