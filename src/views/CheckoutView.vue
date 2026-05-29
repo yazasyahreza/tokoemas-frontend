@@ -2110,11 +2110,28 @@ const parsePrice = (priceStr) => {
   if (typeof priceStr === "number") return Math.floor(priceStr);
   if (String(priceStr).toLowerCase() === "gratis") return 0;
 
-  const withoutDecimal = String(priceStr).split(".")[0];
-  return parseInt(withoutDecimal.replace(/[^0-9]/g, "")) || 0;
+  let strVal = String(priceStr);
+  // HANYA hapus titik jika formatnya desimal MySQL (contoh: .00 atau .50)
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  // Bersihkan karakter non-angka (titik ribuan Indonesia akan aman terhapus di sini)
+  return parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
 };
 
-const formatPrice = (val) => new Intl.NumberFormat("id-ID").format(val);
+const formatPrice = (val) => {
+  if (!val) return "0";
+  let strVal = String(val);
+
+  // Amankan dari desimal database
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  const cleanVal = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
+  return new Intl.NumberFormat("id-ID").format(cleanVal);
+};
 
 const generateInvoiceNumber = () => {
   const date = new Date();

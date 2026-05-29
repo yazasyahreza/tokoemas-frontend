@@ -329,16 +329,25 @@ const parsePrice = (priceStr) => {
   if (typeof priceStr === "number") return Math.floor(priceStr);
   if (String(priceStr).toLowerCase() === "gratis") return 0;
 
-  const withoutDecimal = String(priceStr).split(".")[0];
-  return parseInt(withoutDecimal.replace(/[^0-9]/g, "")) || 0;
+  let strVal = String(priceStr);
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  return parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
 };
 
 const formatPrice = (val) => {
   if (!val) return "0";
-  const cleanVal = String(val).split(".")[0];
-  const finalNumber = parseInt(cleanVal.replace(/[^0-9]/g, "")) || 0;
+  let strVal = String(val);
 
-  return new Intl.NumberFormat("id-ID").format(finalNumber);
+  // Amankan dari desimal database
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  const cleanVal = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
+  return new Intl.NumberFormat("id-ID").format(cleanVal);
 };
 
 // ==========================================

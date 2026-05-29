@@ -20,14 +20,16 @@ export const useCartStore = defineStore("cart", {
 
     totalPrice: (state) =>
       state.items.reduce((total, item) => {
-        // 🔥 Pastikan membuang desimal ".00" bawaan database saat mengkalkulasi harga per item
-        const cleanPrice =
-          parseInt(
-            String(item.price)
-              .split(".")[0]
-              .replace(/[^0-9]/g, ""),
-          ) || 0;
+        let strVal = String(item.price);
+
+        // Amankan dari desimal database
+        if (strVal.match(/\.\d{2}$/)) {
+          strVal = strVal.replace(/\.\d{2}$/, "");
+        }
+
+        const cleanPrice = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
         const qty = parseInt(item.qty) || parseInt(item.quantity) || 1;
+
         return total + cleanPrice * qty;
       }, 0),
   },
