@@ -11,24 +11,27 @@ export const useCartStore = defineStore("cart", {
   }),
 
   getters: {
-    // Menghitung total barang
     totalItems: (state) =>
       state.items.reduce(
-        (acc, item) =>
-          acc + (parseInt(item.qty) || parseInt(item.quantity) || 1),
+        (total, item) =>
+          total + (parseInt(item.qty) || parseInt(item.quantity) || 1),
         0,
       ),
 
-    // Menghitung total harga
-    totalPrice: (state) => {
-      return state.items.reduce((acc, item) => {
-        // Membersihkan format Rp agar jadi angka murni
-        const priceStr = String(item.price || "0").replace(/[^0-9]/g, "");
-        const price = parseInt(priceStr) || 0;
+    totalPrice: (state) =>
+      state.items.reduce((total, item) => {
+        let strVal = String(item.price);
+
+        // Amankan dari desimal database
+        if (strVal.match(/\.\d{2}$/)) {
+          strVal = strVal.replace(/\.\d{2}$/, "");
+        }
+
+        const cleanPrice = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
         const qty = parseInt(item.qty) || parseInt(item.quantity) || 1;
-        return acc + price * qty;
-      }, 0);
-    },
+
+        return total + cleanPrice * qty;
+      }, 0),
   },
 
   actions: {
@@ -44,7 +47,7 @@ export const useCartStore = defineStore("cart", {
 
     // 🔥 1. FASE MEMBER: Tarik keranjang dari Database
     async fetchCart() {
-      const token = this.getToken();
+      const token = localStorage.getItem("token");
       if (!token) return; // Jika belum login, abaikan.
 
       try {

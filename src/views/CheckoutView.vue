@@ -989,11 +989,8 @@
             </div>
 
             <div
-              class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden opacity-80"
+              class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden"
             >
-              <div
-                class="absolute -top-4 -right-4 w-16 h-16 bg-slate-50 rounded-full opacity-50"
-              />
               <div class="flex items-center gap-2 mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1010,47 +1007,72 @@
                   />
                 </svg>
                 <h3
-                  class="text-xs font-black text-slate-500 uppercase tracking-tight"
+                  class="text-xs font-black text-slate-700 uppercase tracking-tight"
                 >
                   Hemat Lebih Banyak
-                  <span
-                    class="text-[9px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-md ml-1"
-                    >Segera Hadir</span
-                  >
                 </h3>
               </div>
 
               <div class="flex gap-2 mb-3">
                 <input
                   type="text"
-                  disabled
-                  placeholder="Fitur promo belum aktif"
-                  class="flex-1 bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs outline-none cursor-not-allowed text-slate-400"
+                  v-model="promoInput"
+                  :disabled="selectedVoucher"
+                  placeholder="Masukkan Kode Kupon"
+                  class="flex-1 bg-slate-50 border border-slate-100 p-3 rounded-xl text-xs outline-none text-slate-700 font-bold uppercase focus:border-blue-500 focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
-                  disabled
-                  class="bg-slate-200 text-slate-400 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed"
+                  @click="cekKodePromoManual"
+                  :disabled="isCheckingPromo || !promoInput || selectedVoucher"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-400"
                 >
-                  Gunakan
+                  {{ isCheckingPromo ? "Mengecek..." : "Gunakan" }}
                 </button>
               </div>
 
               <button
+                v-if="!selectedVoucher"
                 type="button"
-                disabled
-                class="w-full bg-slate-50 border border-slate-100 py-3 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed"
+                @click="showVoucherModal = true"
+                class="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 py-3 rounded-xl flex items-center justify-center gap-2 transition-all group"
               >
                 <span
-                  class="text-slate-400 text-xs font-black uppercase tracking-tighter"
+                  class="text-amber-600 text-xs font-black uppercase tracking-tighter transition-transform group-hover:scale-125"
                   >%</span
                 >
                 <span
-                  class="text-slate-400 text-[10px] font-black uppercase tracking-widest"
+                  class="text-amber-600 text-[10px] font-black uppercase tracking-widest"
                 >
-                  Voucher Belum Tersedia
+                  Lihat Voucher Tersedia
                 </span>
               </button>
+
+              <div
+                v-else
+                class="w-full bg-emerald-50 border border-emerald-100 py-3 px-4 rounded-xl flex items-center justify-between animate-in fade-in zoom-in-95 duration-200"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="text-emerald-600 text-xs font-black animate-bounce"
+                    >%</span
+                  >
+                  <p
+                    class="text-emerald-800 text-[10px] font-black uppercase tracking-wider"
+                  >
+                    Kupon
+                    <span class="underline">{{ selectedVoucher.code }}</span>
+                    Aktif
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  @click="batalkanVoucher"
+                  class="text-rose-500 hover:text-rose-600 text-[10px] font-black uppercase tracking-widest hover:underline transition-all"
+                >
+                  Batalkan
+                </button>
+              </div>
             </div>
 
             <div class="bg-[#1a237e] rounded-[2rem] p-8 shadow-xl">
@@ -1170,14 +1192,31 @@
             }}</span>
           </div>
           <div class="flex justify-between items-center text-xs">
-            <span class="text-slate-500 font-medium">Total Tagihan</span>
-            <span class="text-slate-800 font-black"
-              >Rp {{ formatPrice(successData.total) }}</span
+            <span class="text-slate-500 font-medium"
+              >Tagihan (Subtotal+Ongkir+PPN)</span
+            >
+            <span class="text-slate-800 font-black">
+              Rp {{ formatPrice(successData.originalTotal) }}
+            </span>
+          </div>
+
+          <div
+            v-if="successData.discount > 0"
+            class="flex justify-between items-center text-xs"
+          >
+            <span class="text-slate-500 font-medium">Diskon Voucher</span>
+            <span class="text-emerald-500 font-black"
+              >- Rp {{ formatPrice(successData.discount) }}</span
             >
           </div>
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-slate-500 font-medium">Total Pembayaran</span>
-            <span class="text-emerald-600 font-black"
+
+          <div
+            class="flex justify-between items-center text-xs pt-2 border-t border-slate-100 mt-2"
+          >
+            <span class="text-slate-800 font-bold uppercase tracking-wider"
+              >Total Pembayaran</span
+            >
+            <span class="text-[#00a279] font-black text-sm"
               >Rp {{ formatPrice(successData.total) }}</span
             >
           </div>
@@ -1316,7 +1355,7 @@
                 <h4
                   class="text-xl font-black text-slate-800 mb-4 tracking-tighter"
                 >
-                  Potongan Rp {{ v.discount }}
+                  Potongan {{ v.discount_display }}
                 </h4>
                 <div class="space-y-1.5">
                   <div
@@ -1699,14 +1738,29 @@
         >
           <div
             class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6"
-            :class="
-              modalType === 'warning'
-                ? 'bg-amber-100 text-amber-500'
-                : 'bg-rose-100 text-rose-500'
-            "
+            :class="{
+              'bg-emerald-100 text-emerald-500': modalType === 'success',
+              'bg-amber-100 text-amber-500': modalType === 'warning',
+              'bg-rose-100 text-rose-500': modalType === 'error',
+            }"
           >
             <svg
-              v-if="modalType === 'warning'"
+              v-if="modalType === 'success'"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-8 w-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <svg
+              v-else-if="modalType === 'warning'"
               xmlns="http://www.w3.org/2000/svg"
               class="h-8 w-8"
               fill="none"
@@ -1755,12 +1809,7 @@
             </button>
             <button
               @click="executeAction"
-              class="flex-1 text-white shadow-lg font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
-              :class="
-                modalConfirmText === 'Ya, Kirim'
-                  ? 'bg-[#00a279] hover:bg-[#008764] shadow-emerald-200'
-                  : 'bg-rose-500 hover:bg-rose-600 shadow-rose-200'
-              "
+              class="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-3.5 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
             >
               {{ modalConfirmText }}
             </button>
@@ -1769,9 +1818,15 @@
           <button
             v-else
             @click="executeAction"
-            class="w-full bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 shadow-lg font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95"
+            class="w-full text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95 shadow-lg"
+            :class="{
+              'bg-blue-600 hover:bg-blue-700 shadow-blue-200':
+                modalType === 'success',
+              'bg-rose-500 hover:bg-rose-600 shadow-rose-200':
+                modalType === 'error',
+            }"
           >
-            Mengerti
+            {{ modalConfirmText }}
           </button>
         </div>
       </div>
@@ -1840,21 +1895,123 @@ const openModal = (
 const closeModal = () => {
   showModal.value = false;
   modalConfirmAction.value = null;
+  modalCancelAction.value = null;
 };
 
 const executeCancel = () => {
-  if (modalCancelAction.value) {
-    modalCancelAction.value(); // Lapor ke Vue Router untuk membatalkan
-  }
+  if (modalCancelAction.value) modalCancelAction.value();
   closeModal();
 };
 
 const executeAction = () => {
-  if (modalConfirmAction.value) {
-    modalConfirmAction.value();
-  } else {
-    closeModal();
+  if (modalConfirmAction.value) modalConfirmAction.value();
+  else closeModal();
+};
+
+// ==========================================
+// 🔥 LOGIKA UTAMA EKSEKUSI VOUCHER / KUPON
+// ==========================================
+const vouchers = ref([]); // Menampung list voucher dari database
+const isCheckingPromo = ref(false);
+
+// Ambil daftar voucher aktif dari database untuk diisi ke modal pop-up
+const fetchAvailableVouchers = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/vouchers`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.data.status) {
+      vouchers.value = response.data.data.map((v) => ({
+        id: v.id,
+        code: v.code,
+        title: v.title,
+
+        // 🔥 PERBAIKAN: Format tampilan dinamis (Persen vs Rupiah)
+        discount_display:
+          v.discount_type === "percent"
+            ? `${parseFloat(v.discount_value)}%`
+            : `Rp ${formatPrice(parseFloat(v.discount_value))}`,
+
+        discount_raw: parseFloat(v.discount_value),
+        discount_type: v.discount_type,
+        minSpend: formatPrice(parseFloat(v.min_purchase)),
+        minSpend_raw: parseFloat(v.min_purchase),
+        expiry: formatDateIndo(v.end_date),
+        status: "SIAP PAKAI",
+      }));
+    }
+  } catch (err) {
+    console.error("Gagal mengambil voucher:", err);
   }
+};
+
+// Eksekusi untuk Kode Promo yang diketik MANUAL
+const cekKodePromoManual = async () => {
+  if (!promoInput.value) return;
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  try {
+    isCheckingPromo.value = true;
+    const response = await axios.post(
+      `${API_BASE_URL}/vouchers/validate`,
+      {
+        code: promoInput.value,
+        cart_total: totalPrice.value,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    if (response.data.status) {
+      selectedVoucher.value = response.data.data;
+
+      // 🔥 PERBAIKAN: Ubah "error" menjadi "success" Bos!
+      openModal(
+        "success", // 👈 Tipe Sukses
+        "Promo Berhasil!", // Judul
+        `Kode promo ${response.data.data.code} aktif. Anda mendapat potongan harga Rp ${formatPrice(response.data.data.discount)}`, // Pesan
+        null, // No Action
+        "Oke", // Teks Tombol
+      );
+    }
+  } catch (error) {
+    selectedVoucher.value = null;
+    const msg = error.response?.data?.message || "Kode promo tidak valid bos.";
+    openModal("error", "Gagal Terapkan Promo", msg); // Tetap error untuk catch
+  } finally {
+    isCheckingPromo.value = false;
+  }
+};
+
+// Eksekusi ketika memilih voucher dari KLIK DAFTAR MODAL POP-UP
+const applyVoucher = async (v) => {
+  // Amankan validasi lokal sebelum tembak server
+  if (totalPrice.value < v.minSpend_raw) {
+    openModal(
+      "error",
+      "Syarat Belum Cukup",
+      "Total belanja Anda belum memenuhi syarat minimal belanja kupon ini Bos.",
+    );
+    return;
+  }
+
+  promoInput.value = v.code;
+  await cekKodePromoManual(); // Lempar ke validator server untuk kalkulasi final
+  showVoucherModal.value = false; // Tutup modal voucher
+};
+
+const batalkanVoucher = () => {
+  selectedVoucher.value = null;
+  promoInput.value = "";
+};
+
+// 🔥 Modifikasi fungsi pembantu isVoucherEligible reaktif
+const isVoucherEligible = (v) => {
+  return totalPrice.value >= v.minSpend_raw;
 };
 
 const formatTimeIndo = () => {
@@ -1950,15 +2107,31 @@ const getImageUrl = (img) => {
 
 const parsePrice = (priceStr) => {
   if (!priceStr) return 0;
-  if (typeof priceStr === "number") return priceStr;
-  if (priceStr.toLowerCase() === "gratis") return 0;
-  return parseInt(priceStr.replace(/[^0-9]/g, "")) || 0;
+  if (typeof priceStr === "number") return Math.floor(priceStr);
+  if (String(priceStr).toLowerCase() === "gratis") return 0;
+
+  let strVal = String(priceStr);
+  // HANYA hapus titik jika formatnya desimal MySQL (contoh: .00 atau .50)
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  // Bersihkan karakter non-angka (titik ribuan Indonesia akan aman terhapus di sini)
+  return parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
 };
 
-const formatPrice = (val) => new Intl.NumberFormat("id-ID").format(val);
+const formatPrice = (val) => {
+  if (!val) return "0";
+  let strVal = String(val);
 
-const isVoucherEligible = (voucher) =>
-  totalPrice.value >= parsePrice(voucher.minSpend);
+  // Amankan dari desimal database
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  const cleanVal = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
+  return new Intl.NumberFormat("id-ID").format(cleanVal);
+};
 
 const generateInvoiceNumber = () => {
   const date = new Date();
@@ -2251,6 +2424,11 @@ const executeFinalCheckout = async () => {
     formData.append("selectedCourier", selectedCourier.value);
     formData.append("selectedBank", selectedBank.value);
 
+    formData.append(
+      "voucher_id",
+      selectedVoucher.value ? selectedVoucher.value.id : "",
+    );
+
     // Lampiran File Gambar
     formData.append("buktiBlobFile", form.value.buktiBlobFile);
     if (form.value.ktpBlobFile) {
@@ -2277,11 +2455,20 @@ const executeFinalCheckout = async () => {
         (b) => b.id === selectedBank.value,
       );
 
+      const resData = response.data.data;
+
       successData.value = {
-        invoice: response.data.data.invoice_no || form.value.invoiceNumber,
+        invoice: resData.invoice_no || form.value.invoiceNumber,
         transactionCode: "#TRX" + Math.floor(1000000 + Math.random() * 9000000),
         paymentMethod: activeBankData ? activeBankData.name : "Bank Transfer",
-        total: finalTotalPrice.value,
+
+        total: parseFloat(resData.grand_total),
+        discount: parseFloat(resData.discount_amount),
+        originalTotal:
+          parseFloat(resData.subtotal) +
+          parseFloat(resData.shipping_cost) +
+          parseFloat(resData.admin_fee),
+
         targetBank: activeShopAccount.value
           ? activeShopAccount.value.name
           : "Transfer Bank",
@@ -2356,6 +2543,7 @@ onMounted(() => {
   fetchShippingMethods();
   fetchPaymentMethods();
   fetchShopAccounts();
+  fetchAvailableVouchers();
 });
 
 onBeforeRouteLeave((to, from, next) => {

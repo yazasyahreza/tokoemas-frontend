@@ -326,11 +326,28 @@ const getSubtotal = (item) => {
 
 const parsePrice = (priceStr) => {
   if (!priceStr) return 0;
-  return parseInt(String(priceStr).replace(/[^0-9]/g, "")) || 0;
+  if (typeof priceStr === "number") return Math.floor(priceStr);
+  if (String(priceStr).toLowerCase() === "gratis") return 0;
+
+  let strVal = String(priceStr);
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  return parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
 };
 
 const formatPrice = (val) => {
-  return new Intl.NumberFormat("id-ID").format(val);
+  if (!val) return "0";
+  let strVal = String(val);
+
+  // Amankan dari desimal database
+  if (strVal.match(/\.\d{2}$/)) {
+    strVal = strVal.replace(/\.\d{2}$/, "");
+  }
+
+  const cleanVal = parseInt(strVal.replace(/[^0-9]/g, "")) || 0;
+  return new Intl.NumberFormat("id-ID").format(cleanVal);
 };
 
 // ==========================================
