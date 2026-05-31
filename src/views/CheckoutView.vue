@@ -326,13 +326,42 @@
                     <label class="text-xs font-bold text-slate-500 uppercase"
                       >Provinsi <span class="text-red-500">*</span></label
                     >
-                    <input
-                      type="text"
-                      required
-                      v-model="form.province"
-                      placeholder="Provinsi anda"
-                      class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50"
-                    />
+                    <div class="relative">
+                      <select
+                        required
+                        v-model="selectedProvId"
+                        @change="onProvinceChange"
+                        class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50 appearance-none font-semibold text-slate-700"
+                        :disabled="form.location !== 'Indonesia'"
+                      >
+                        <option value="" disabled>Pilih Provinsi</option>
+                        <option
+                          v-for="prov in provinces"
+                          :key="prov.id"
+                          :value="prov.id"
+                        >
+                          {{ prov.name }}
+                        </option>
+                      </select>
+                      <div
+                        class="absolute inset-y-0 right-4 flex items-center pointer-events-none"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2.5"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="space-y-1.5">
@@ -340,26 +369,88 @@
                       >Kabupaten / Kota
                       <span class="text-red-500">*</span></label
                     >
-                    <input
-                      type="text"
-                      required
-                      v-model="form.regency"
-                      placeholder="Kabupaten / Kota anda"
-                      class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50"
-                    />
+                    <div class="relative">
+                      <select
+                        required
+                        v-model="selectedRegId"
+                        @change="onRegencyChange"
+                        :disabled="
+                          !selectedProvId || form.location !== 'Indonesia'
+                        "
+                        class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50 appearance-none font-semibold text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="" disabled>Pilih Kabupaten/Kota</option>
+                        <option
+                          v-for="reg in regencies"
+                          :key="reg.id"
+                          :value="reg.id"
+                        >
+                          {{ reg.name }}
+                        </option>
+                      </select>
+                      <div
+                        class="absolute inset-y-0 right-4 flex items-center pointer-events-none"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2.5"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="space-y-1.5">
                     <label class="text-xs font-bold text-slate-500 uppercase"
                       >Kecamatan <span class="text-red-500">*</span></label
                     >
-                    <input
-                      type="text"
-                      required
-                      v-model="form.district"
-                      placeholder="Kecamatan anda"
-                      class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50"
-                    />
+                    <div class="relative">
+                      <select
+                        required
+                        v-model="selectedDistId"
+                        @change="onDistrictChange"
+                        :disabled="
+                          !selectedRegId || form.location !== 'Indonesia'
+                        "
+                        class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50 appearance-none font-semibold text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="" disabled>Pilih Kecamatan</option>
+                        <option
+                          v-for="dist in districts"
+                          :key="dist.id"
+                          :value="dist.id"
+                        >
+                          {{ dist.name }}
+                        </option>
+                      </select>
+                      <div
+                        class="absolute inset-y-0 right-4 flex items-center pointer-events-none"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2.5"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="space-y-1.5">
@@ -367,13 +458,44 @@
                       >Desa / Kelurahan
                       <span class="text-red-500">*</span></label
                     >
-                    <input
-                      type="text"
-                      required
-                      v-model="form.village"
-                      placeholder="Desa / Kelurahan anda"
-                      class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50"
-                    />
+                    <div class="relative">
+                      <select
+                        required
+                        v-model="form.village"
+                        @change="onVillageChange"
+                        :disabled="
+                          !selectedDistId || form.location !== 'Indonesia'
+                        "
+                        class="w-full border border-slate-200 p-4 rounded-xl focus:outline-none focus:border-amber-500 text-sm bg-slate-50/50 appearance-none font-semibold text-slate-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="" disabled>Pilih Desa/Kelurahan</option>
+                        <option
+                          v-for="vill in villages"
+                          :key="vill.id"
+                          :value="vill.name"
+                        >
+                          {{ vill.name }}
+                        </option>
+                      </select>
+                      <div
+                        class="absolute inset-y-0 right-4 flex items-center pointer-events-none"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4 text-slate-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2.5"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="md:col-span-2 space-y-1.5">
@@ -2068,6 +2190,93 @@ const form = ref({
   buktiBlobFile: null,
 });
 
+const REGION_API = "https://www.emsifa.com/api-wilayah-indonesia/api";
+
+const provinces = ref([]);
+const regencies = ref([]);
+const districts = ref([]);
+const villages = ref([]);
+
+// Menyimpan ID wilayah yang sedang dipilih untuk memanggil data anak-anaknya
+const selectedProvId = ref("");
+const selectedRegId = ref("");
+const selectedDistId = ref("");
+
+// 1. Ambil data Provinsi saat halaman dimuat
+const fetchProvinces = async () => {
+  try {
+    const res = await axios.get(`${REGION_API}/provinces.json`);
+    provinces.value = res.data;
+  } catch (error) {
+    console.error("Gagal mengambil data provinsi", error);
+  }
+};
+
+// 2. Saat Provinsi dipilih -> Ambil Kabupaten
+const onProvinceChange = async () => {
+  // Simpan nama provinsi ke form.value agar bisa dikirim ke backend
+  const prov = provinces.value.find((p) => p.id === selectedProvId.value);
+  form.value.province = prov ? prov.name : "";
+
+  // Reset data anak-anaknya
+  form.value.regency = "";
+  form.value.district = "";
+  form.value.village = "";
+  selectedRegId.value = "";
+  selectedDistId.value = "";
+  regencies.value = [];
+  districts.value = [];
+  villages.value = [];
+
+  if (selectedProvId.value) {
+    const res = await axios.get(
+      `${REGION_API}/regencies/${selectedProvId.value}.json`,
+    );
+    regencies.value = res.data;
+  }
+};
+
+// 3. Saat Kabupaten dipilih -> Ambil Kecamatan
+const onRegencyChange = async () => {
+  const reg = regencies.value.find((r) => r.id === selectedRegId.value);
+  form.value.regency = reg ? reg.name : "";
+
+  form.value.district = "";
+  form.value.village = "";
+  selectedDistId.value = "";
+  districts.value = [];
+  villages.value = [];
+
+  if (selectedRegId.value) {
+    const res = await axios.get(
+      `${REGION_API}/districts/${selectedRegId.value}.json`,
+    );
+    districts.value = res.data;
+  }
+};
+
+// 4. Saat Kecamatan dipilih -> Ambil Desa/Kelurahan
+const onDistrictChange = async () => {
+  const dist = districts.value.find((d) => d.id === selectedDistId.value);
+  form.value.district = dist ? dist.name : "";
+
+  form.value.village = "";
+  villages.value = [];
+
+  if (selectedDistId.value) {
+    const res = await axios.get(
+      `${REGION_API}/villages/${selectedDistId.value}.json`,
+    );
+    villages.value = res.data;
+  }
+};
+
+// 5. Saat Desa dipilih -> Simpan namanya
+const onVillageChange = () => {
+  // Hanya menyimpan namanya saja, tidak perlu fetch anak lagi
+  // (Karena di template v-model-nya akan langsung ke form.value.village)
+};
+
 // ==========================================
 // 3. COMPUTED PROPERTIES (KALKULASI OTOMATIS)
 // ==========================================
@@ -2544,6 +2753,7 @@ onMounted(() => {
   fetchPaymentMethods();
   fetchShopAccounts();
   fetchAvailableVouchers();
+  fetchProvinces();
 });
 
 onBeforeRouteLeave((to, from, next) => {
