@@ -2375,6 +2375,8 @@ const fetchUserProfile = async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = response.data.data;
+
+    // Isi data form standar
     const fullName = data.name || "";
     const nameParts = fullName.trim().split(" ");
     form.value.firstName = nameParts[0] || "";
@@ -2383,6 +2385,28 @@ const fetchUserProfile = async () => {
     form.value.email = data.email || "";
     form.value.phone = data.phone || "";
     form.value.fullAddress = data.address || "";
+
+    // ==========================================================
+    // 🔥 OBAT DOSIS TINGGI: JARING PENANGKAP KTP MULTI-VARIABEL
+    // ==========================================================
+    let fileName = null;
+
+    // Kita cek semua kemungkinan nama variabel dari backend!
+    if (data.ktp_file) {
+        fileName = data.ktp_file;
+    } else if (data.npwp_file) {
+        fileName = data.npwp_file; // 👈 TANGKAP NPWP DI SINI!
+    } else if (data.ktp_image) {
+        fileName = data.ktp_image;
+    }
+
+    // Jika file berhasil ditangkap, paksa Vue untuk me-render gambarnya!
+    if (fileName) {
+      ktpPreviewUrl.value = `${BACKEND_URL}/uploads/documents/${fileName}`;
+      console.log("BERHASIL MENDAPATKAN KTP:", ktpPreviewUrl.value);
+    } else {
+      console.error("KTP TIDAK DITEMUKAN DI API! Data dari server:", data);
+    }
   } catch (err) {
     console.error("Gagal ambil data user", err);
   }
